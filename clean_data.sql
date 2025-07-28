@@ -1,3 +1,5 @@
+-- #0. Duplicate the layoffs table
+
 CREATE TABLE layoffs_staging AS TABLE layoffs WITH DATA;
 
 -- DROP TABLE IF EXISTS layoffs_staging;
@@ -9,14 +11,18 @@ SELECT * FROM layoffs_staging;
 WITH layoffs_cte AS (
     SELECT *,
     ROW_NUMBER() OVER(
-        PARTITION BY company, location, date, country, funds_raised, total_laid_off, funds_raised, stage
+        PARTITION BY company, location, date, country, funds_raised, total_laid_off, percentage_laid_off, funds_raised, stage
     ) AS row_number
     FROM layoffs_staging
 )
 
 SELECT *
+FROM layoffs_cte
+WHERE row_number > 1;
+
+SELECT *
 FROM layoffs_staging
-WHERE company = 'Beyond Meat';
+WHERE company IN ('Beyond Meat', 'Cazoo');
 
 CREATE TABLE layoffs_staging2 AS 
 SELECT *,
@@ -24,7 +30,6 @@ SELECT *,
         PARTITION BY company, location, date, funds_raised, total_laid_off, funds_raised, stage
     ) AS row_number
 FROM layoffs_staging;
-
 
 -- DROP TABLE IF EXISTS layoffs_staging2;
 
