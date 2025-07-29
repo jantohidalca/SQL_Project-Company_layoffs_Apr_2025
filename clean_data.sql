@@ -1,4 +1,4 @@
--- #0. Duplicate the layoffs table
+-- Duplicate the layoffs table
 
 CREATE TABLE layoffs_staging AS TABLE layoffs WITH DATA;
 
@@ -6,7 +6,7 @@ CREATE TABLE layoffs_staging AS TABLE layoffs WITH DATA;
 
 SELECT * FROM layoffs_staging;
 
--- #1. Make sure there are no duplicates
+---- #1. Eliminate duplicate entries ----
 
 WITH layoffs_cte AS (
     SELECT *,
@@ -35,140 +35,117 @@ FROM layoffs_staging;
 
 DELETE
 -- SELECT *
-FROM layoffs_staging2 WHERE row_number > 1;
+FROM layoffs_staging2
+WHERE row_number > 1;
 
 ALTER TABLE layoffs_staging2
 DROP COLUMN row_number;
 
--- #2. Standarizing data
+---- #2. Standarize the data ----
 
--- Standarize locations
-
-SELECT DISTINCT location
-FROM layoffs_staging2
-ORDER BY 1;
-
--- Standarize locations without Non-U.S. suffix (1st part)
+-- Recognizing suffixes among `location`
 
 SELECT location, country
 FROM layoffs_staging2
-WHERE location LIKE 'Vancouver%';
+WHERE location LIKE 'Melbourne%';
 
 WITH layoffs_cte2 AS (
-    SELECT location, country, SPLIT_PART(location, ',', 1) AS city, SPLIT_PART(location, ',', 2) as suffix
+    SELECT location, country, SPLIT_PART(location, ',', 1) AS city, SPLIT_PART(location, ',', 2) AS suffix
     FROM layoffs_staging2
 )
 
-/*
 SELECT DISTINCT suffix
-FROM layoffs_cte2
-WHERE suffix;
+FROM layoffs_cte2;
+
+ALTER TABLE layoffs_staging2
+ADD city TEXT, 
+ADD suffix TEXT;
+
+UPDATE layoffs_staging2
+SET city = SPLIT_PART(location, ',', 1), suffix = SPLIT_PART(location, ',', 2);
+
+SELECT location, country
+FROM layoffs_staging2
+WHERE suffix NOT IN ('', 'Non-U.S.');
+
+UPDATE layoffs_staging2
+SET location = CONCAT(city,',Non-U.S.'),
+    suffix = 'Non-U.S.'
+WHERE country <> 'United States'
+    AND suffix NOT IN ('','Non-U.S.');
+
+/* Add the Non-U.S. suffix to those locations 
+    outside the U.S. (1st part) */
+
+SELECT DISTINCT suffix
+FROM layoffs_staging2
+WHERE country = 'United States';
+
+SELECT DISTINCT suffix
+FROM layoffs_staging2
+WHERE country <> 'United States';
+
+WITH layoffs_cte3 AS (
+    SELECT city, COUNT(DISTINCT suffix)
+    FROM layoffs_staging2
+    WHERE country <> 'United States'
+    GROUP BY city
+    HAVING COUNT(DISTINCT suffix) > 1
+)
+
+/* previous statement used along the CTE before the UPDATE statement
+
+SELECT location, country
+FROM layoffs_staging2 AS t1
+INNER JOIN layoffs_cte3 AS t2
+    ON t1.city = t2.city
+WHERE country <> 'United States' 
+    AND suffix = '';
+
 */
 
-SELECT city, COUNT(DISTINCT suffix)
-FROM layoffs_cte2
-GROUP BY city
-HAVING COUNT(DISTINCT suffix) > 1;
+UPDATE layoffs_staging2 AS t1
+SET location = CONCAT(t1.city,',Non-U.S.'),
+    suffix = 'Non-U.S.'
+FROM layoffs_cte3 AS t2
+WHERE t1.city = t2.city
+    AND country <> 'United States' 
+    AND suffix = '';
 
-UPDATE layoffs_staging2
-SET location = 'Auckland,Non-U.S.'
-WHERE location = 'Auckland';
+/* Adding the Non-U.S. suffix to those locations 
+    outside the U.S. (2nd part) */
 
-UPDATE layoffs_staging2
-SET location = 'Bengaluru,Non-U.S.'
-WHERE location = 'Bengaluru';
-
-UPDATE layoffs_staging2
-SET location = 'Buenos Aires,Non-U.S.'
-WHERE location = 'Buenos Aires';
-
-UPDATE layoffs_staging2
-SET location = 'Cayman Islands,Non-U.S.'
-WHERE location = 'Cayman Islands';
-
-UPDATE layoffs_staging2
-SET location = 'Gurugram,Non-U.S.'
-WHERE location = 'Gurugram';
-
-UPDATE layoffs_staging2
-SET location = 'Kuala Lumpur,Non-U.S.'
-WHERE location = 'Kuala Lumpur';
-
-UPDATE layoffs_staging2
-SET location = 'London,Non-U.S.'
-WHERE location = 'London';
-
-UPDATE layoffs_staging2
-SET location = 'Luxembourg,Non-U.S.'
-WHERE location = 'Luxembourg,Raleigh';
-
-UPDATE layoffs_staging2
-SET location = 'Melbourne,Non-U.S.'
-WHERE location = 'Melbourne,Victoria';
-
-UPDATE layoffs_staging2
-SET location = 'Montreal,Non-U.S.'
-WHERE location = 'Montreal';
-
-UPDATE layoffs_staging2
-SET location = 'Mumbai,Non-U.S.'
-WHERE location = 'Mumbai';
-
-UPDATE layoffs_staging2
-SET location = 'Singapore,Non-U.S.'
-WHERE location = 'Singapore';
-
-UPDATE layoffs_staging2
-SET location = 'Tel Aviv,Non-U.S.'
-WHERE location = 'Tel Aviv';
-
-SELECT *
+SELECT location, country, source
 FROM layoffs_staging2
-WHERE location = 'Vancouver' AND country <> 'United States';
-
-UPDATE layoffs_staging2
-SET location = 'Vancouver,Non-U.S.'
-WHERE location = 'Vancouver' AND country <> 'United States';
-
--- Standarize locations without Non-U.S. suffix (2nd part)
-
-WITH layoffs_cte2 AS (
-    SELECT location, country, SPLIT_PART(location, ',', 1) AS city, SPLIT_PART(location, ',', 2) as suffix
-    FROM layoffs_staging2
-)
-
-SELECT location, country, suffix
-FROM layoffs_cte2
--- WHERE suffix = '' AND country <> 'United States'
-WHERE suffix = '' AND country NOT IN('United States', 'Seychelles', 'China');
-
-SELECT location, COUNT(DISTINCT country)
-FROM layoffs_staging2
-GROUP BY location
-HAVING COUNT(DISTINCT country) > 1;
+WHERE suffix = '' 
+    AND country <> 'United States'
+    AND location <> 'Non-U.S.';
 
 UPDATE layoffs_staging2
 SET country = 'United States'
 WHERE location IN('Boston', 'SF Bay Area', 'New York City') AND country <> 'United States';
 
 UPDATE layoffs_staging2
-SET location = CONCAT(location,',Non-U.S.')
-WHERE location = 'Nicosia' AND country = 'Cyprus';
+SET location = CONCAT(location,',Non-U.S.'),
+    suffix = 'Non-U.S.'
+WHERE location = 'Nicosia'
+    AND country = 'Cyprus'
+    AND suffix = '';
 
 UPDATE layoffs_staging2
-SET location = CONCAT(location,',Non-U.S.')
-WHERE location = 'Trondheim' AND country = 'Norway';
+SET location = CONCAT(location,',Non-U.S.'),
+    suffix = 'Non-U.S.'
+WHERE location = 'Trondheim' 
+    AND country = 'Norway'
+    AND suffix = '';
 
--- Standarize locations with different countries associated
+-- Standarizing locations with different countries associated --
 
 SELECT location, COUNT(DISTINCT country)
 FROM layoffs_staging2
+WHERE location <> 'Non-U.S.'
 GROUP BY location
 HAVING COUNT(DISTINCT country) > 1;
-
-SELECT DISTINCT country
-FROM layoffs_staging2
-WHERE country = 'U%';
 
 SELECT location, country
 FROM layoffs_staging2
@@ -204,7 +181,7 @@ INNER JOIN layoffs_staging2 AS t2
     ON t1.company = t2.company
 WHERE t1.location = 'Non-U.S.';
 
--- Avoid duplicated location by mispelling
+-- Avoiding duplicated location by umlauts --
 
 SELECT DISTINCT location
 FROM layoffs_staging2
@@ -226,19 +203,25 @@ UPDATE layoffs_staging2
 SET location = 'Düsseldorf,Non-U.S.'
 WHERE location = 'Dusseldorf,Non-U.S.';
 
--- Standarize countries
+-- Dropping city and suffix columns
+
+ALTER TABLE layoffs_staging2
+DROP COLUMN city, 
+DROP COLUMN suffix;
+
+-- Standarizing countries
 
 SELECT DISTINCT country
 FROM layoffs_staging2
 ORDER BY 1;
 
--- Standarize industry
+-- Standarizing industry
 
 SELECT DISTINCT industry
 FROM layoffs_staging2
 ORDER BY 1;
 
--- Standarize company
+-- Standarizing company
 
 SELECT DISTINCT company, TRIM(company)
 FROM layoffs_staging2
@@ -247,7 +230,7 @@ ORDER BY company;
 UPDATE layoffs_staging2
 SET company = TRIM(company);
 
--- Standarize date and date_added
+-- Standarizing date and date_added --
 
 SELECT DISTINCT date, date_added
 FROM layoffs_staging2
@@ -259,7 +242,7 @@ USING TO_DATE(date, '%MM/%DD/%YYYY'),
 ALTER COLUMN date_added TYPE DATE
 USING TO_DATE(date_added, '%MM/%DD/%YYYY');
 
--- Standarize total_laid_off
+-- Standarizing total_laid_off --
 
 SELECT DISTINCT SPLIT_PART(total_laid_off, '.',2) AS decimal_part
 FROM layoffs_staging2
@@ -283,7 +266,7 @@ ALTER TABLE layoffs_staging2
 ALTER COLUMN total_laid_off TYPE INTEGER
 USING total_laid_off::INTEGER;
 
--- Standarize percentage_laid_off
+-- Standarizing percentage_laid_off --
 
 SELECT DISTINCT RIGHT(percentage_laid_off, 1), POSITION('.' IN percentage_laid_off)
 FROM layoffs_staging2;
@@ -313,7 +296,7 @@ SET percentage_laid_off = percentage_laid_off/100;
 ALTER TABLE layoffs_staging2
 ALTER COLUMN percentage_laid_off TYPE DECIMAL(3,2);
 
--- Standarize funds_raised
+-- Standarizing funds_raised --
 
 SELECT DISTINCT LEFT(funds_raised, 1), SPLIT_PART(funds_raised, '.', 2)
 FROM layoffs_staging2;
@@ -331,12 +314,12 @@ ALTER TABLE layoffs_staging2
 ALTER COLUMN funds_raised_dollars TYPE INTEGER
 USING funds_raised_dollars::INTEGER;
 
--- Standarize stage
+-- Standarizing stage
 
 SELECT DISTINCT stage
 FROM layoffs_staging2;
 
--- #3. Adressing NULL and blank values
+---- #3. Adressing NULL and blank values ----
 
 -- Company
 
