@@ -1,4 +1,4 @@
-# SQL Project: Data Cleaning a Company Layoff Dataset (April 2025 Update)
+# SQL Project: Data Cleaning a Company Layoff Dataset (July 2025 Update)
 
 ![project_thumbnail](SQL_Project-Company-layoffs.png)
 
@@ -6,7 +6,7 @@
 
 While I was watching YouTube to review SQL topics, I came across a video of [Alex The Analyst](https://www.youtube.com/watch?v=OT1RErkfLNQ&ab_channel=AlexTheAnalyst) on YouTube where he was cleaning a dataset. Essentially, the dataset consisted of layoffs from tech companies around the world.
 
-Since that video was uploaded, the dataset has been updated to include the most recent data until April 2025. So that gave me a reason to try to use SQL, featuring PostgreSQL and Visual Studio Code, to clean the updated dataset of company layoffs.
+Since that video was uploaded, the dataset has been updated to include the most recent data until July 2025. So that gave me a reason to try to use SQL, featuring PostgreSQL and Visual Studio Code, to clean the updated dataset of company layoffs.
 
 ### Crucial tasks in data cleaning
 
@@ -35,11 +35,11 @@ You can feel free to use the same files as me here below:
 
 - SQL files to create the database and import the dataset: [CREATING_DATABASE](CREATING_DATABASE_TABLE)
 - SQL file to clean the dataset: [clean_data.sql](clean_data.sql)
-- Original CSV Dataset (April 2025 version):  [layoffs.csv](layoffs.csv)
+- Original CSV Dataset (July 2025 version):  [layoffs.csv](layoffs.csv)
 
 ### Layoffs Dataset
 
-The dataset used for this project contains real-world company layoffs around the globe from 11 March 2020 to 21 April 2025. It comes from [Kaggle](https://www.kaggle.com/datasets/swaptr/layoffs-2022). The dataset are covered by the [ODC Open Database License](https://opendatacommons.org/licenses/odbl/odbl-10.txt).
+The dataset used for this project contains real-world company layoffs around the globe from 11 March 2020 to 22 July 2025. It comes from [Kaggle](https://www.kaggle.com/datasets/swaptr/layoffs-2022). The dataset are covered by the [ODC Open Database License](https://opendatacommons.org/licenses/odbl/odbl-10.txt).
 
 Overall, it includes detailed information of a huge number of layoffs:
 
